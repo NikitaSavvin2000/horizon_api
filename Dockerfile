@@ -1,20 +1,25 @@
-FROM python:3.11-buster
-USER root
-RUN apt-get update
-RUN apt-get install -y vim poppler-utils
+FROM python:3.9.16-slim-buster
+#
+#WORKDIR app
+#COPY ./ ./
 
+COPY . /app
 WORKDIR /app
-COPY ./ ./
 
-COPY pyproject.toml pdm.lock README.md ./
+ENV PYTHONPATH=/app
+ENV CUDA_VISIBLE_DEVICES=""
+
+ENV PYTHONPATH=/app
+
+COPY pyproject.toml .
+COPY pdm.lock .
 
 RUN pip install -U pip setuptools wheel
 RUN pip install zstandard
 RUN pip install pdm
-RUN pdm install --prod --frozen-lockfile --no-editable
-RUN pdm build
-RUN pdm install
+RUN pdm install --prod --no-lock --no-editable
 
 EXPOSE 7079
 
 ENTRYPOINT ["pdm", "run", "src/server.py"]
+
