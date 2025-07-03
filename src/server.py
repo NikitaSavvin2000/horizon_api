@@ -162,5 +162,5 @@ def read_root():
 if __name__ == "__main__":
     port = 7079
     print(f'🚀 Документация http://0.0.0.0:{port}{docs_url}')
-    uvicorn.run("server:app", host="0.0.0.0", port=port, workers=2, log_level="debug", timeout_keep_alive=3600*2)
+    uvicorn.run("server:app", host="0.0.0.0", port=port, workers=2, log_level="debug")
 
