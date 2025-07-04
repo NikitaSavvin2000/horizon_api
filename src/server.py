@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request
 from src.config import logger, public_or_local
+from starlette.responses import JSONResponse
 
 from src.models.schemes import PredictRequest
 import requests
