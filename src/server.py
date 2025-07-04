@@ -57,14 +57,17 @@ VALID_TOKENS = tokens_df[tokens_df["source"] == "api_horizon"]["token"].tolist()
 
 class TokenAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        auth = request.headers.get("Authorization")
-        if not auth or not auth.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
-        token = auth.split(" ")[1]
-        if token not in VALID_TOKENS:
-            raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
-        response = await call_next(request)
-        return response
+        try:
+            auth = request.headers.get("Authorization")
+            if not auth or not auth.startswith("Bearer "):
+                raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
+            token = auth.split(" ")[1]
+            if token not in VALID_TOKENS:
+                raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
+            response = await call_next(request)
+            return response
+        except HTTPException as e:
+            return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
 
 app.add_middleware(TokenAuthMiddleware)
 #
