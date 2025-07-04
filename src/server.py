@@ -5,10 +5,9 @@ import os
 from typing import Annotated, List
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi import Request
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.config import logger, public_or_local
-from starlette.responses import JSONResponse
 
 from src.models.schemes import PredictRequest
 import requests
@@ -40,15 +39,7 @@ origins = [
     url
 ]
 docs_url = "/horizon_api"
-app = FastAPI(docs_url=docs_url, openapi_url='/backend/v1/openapi.json')
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+openapi_url = '/backend/v1/openapi.json'
 
 tokens_link = os.getenv("TOKEN_LIST")
 
@@ -56,21 +47,23 @@ tokens_df = pd.read_csv(tokens_link)
 
 VALID_TOKENS = tokens_df[tokens_df["source"] == "api_horizon"]["token"].tolist()
 
-class TokenAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        try:
-            auth = request.headers.get("Authorization")
-            if not auth or not auth.startswith("Bearer "):
-                raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
-            token = auth.split(" ")[1]
-            if token not in VALID_TOKENS:
-                raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
-            response = await call_next(request)
-            return response
-        except HTTPException as e:
-            return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+security = HTTPBearer()
 
-app.add_middleware(TokenAuthMiddleware)
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    if token not in VALID_TOKENS:
+        raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
+    return token
+
+app = FastAPI(docs_url=docs_url, openapi_url=openapi_url, dependencies=[Depends(verify_token)])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 #
 
 token = os.getenv("TOOL_BACKEND_TOKEN")
