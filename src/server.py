@@ -5,7 +5,8 @@ import os
 from typing import Annotated, List
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request
 from src.config import logger, public_or_local
 
 from src.models.schemes import PredictRequest
@@ -47,6 +48,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+tokens_link = os.getenv("TOKEN_LIST")
+
+tokens_df = pd.read_csv(tokens_link)
+
+VALID_TOKENS = tokens_df[tokens_df["source"] == "api_horizon"]["token"].tolist()
+
+class TokenAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        auth = request.headers.get("Authorization")
+        if not auth or not auth.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
+        token = auth.split(" ")[1]
+        if token not in VALID_TOKENS:
+            raise HTTPException(status_code=401, detail="Unauthorized. To get access, contact @SavvinNikita on Telegram.")
+        response = await call_next(request)
+        return response
+
+app.add_middleware(TokenAuthMiddleware)
+#
+
+token = os.getenv("TOOL_BACKEND_TOKEN")
 
 @app.post("/forecast")
 async def func_generate_forecast(body: Annotated[
@@ -133,8 +156,8 @@ async def func_generate_forecast(body: Annotated[
             "forecast_horizon_time": forecast_horizon_time
         }
         url = f"{base_url}/generate_forecast"
-        print(url)
-        response = requests.post(url, json=data)
+        headers = {'Authorization': f'Bearer {token}'}
+        response = requests.post(url=url, json=data, headers=headers)
         response.raise_for_status()
         res = response.json()
         predictions = res["map_data"]["data"]["predictions"]
