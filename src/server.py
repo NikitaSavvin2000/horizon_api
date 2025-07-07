@@ -152,7 +152,7 @@ async def func_generate_forecast(body: Annotated[
             "col_target": col_target,
             "forecast_horizon_time": forecast_horizon_time
         }
-        url = f"{base_url}/api/v1/predict-xgboost""
+        url = f"{base_url}/api/v1/predict-xgboost"
         headers = {'Authorization': f'Bearer {token}'}
         response = requests.post(url=url, json=data, headers=headers)
         response.raise_for_status()
