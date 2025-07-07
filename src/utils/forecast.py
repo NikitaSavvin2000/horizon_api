@@ -18,11 +18,12 @@ forecast_horizon_time = '2018-01-03 23:45:00'
 import requests
 
 
-# base_url = "https://nikitasavvin2000-horizon-api-921e.twc1.net"
-base_url = "http://0.0.0.0:7079"
-
+base_url = ''
+token = ''
 def func_generate_forecast(df: pd.DataFrame, time_column: str, col_target: str, forecast_horizon_time: str):
-    url = f"{base_url}/forecast"
+    url = f"{base_url}/api/v1/predict-xgboost"
+    headers = {'Authorization': f'Bearer {token}'}
+
 
     df_records = df.to_dict(orient='records')
 
@@ -34,7 +35,7 @@ def func_generate_forecast(df: pd.DataFrame, time_column: str, col_target: str, 
     }
 
     try:
-        response = requests.post(url, json=data)
+        response = requests.post(url=url, json=data, headers=headers)
 
         if response.status_code == 200:
             return response.json()
